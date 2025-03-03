@@ -4,6 +4,7 @@ from scipy.stats import norm
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.preprocessing import StandardScaler
 
 
 '''''''''''''''''''''''''''''''''
@@ -85,28 +86,72 @@ def evaluate(test_data, prediction):
 
     return accuracy, cm
 
-def PCA_visualize(test_data):
-    features_idx = test_data.columns[1:]
-    X_test = test_data[features_idx].values
-    y_test = test_data.iloc[:, 0].values
+def Visualize_PCA(train, test):
+    """
+    使用 PCA 降維並可視化 train_data 和 test_data
+    - train_data, test_data: 特徵矩陣 (不包含標籤)
+    - train_labels, test_labels: 對應的標籤 (分類用顏色區分)
+    """
 
-    pca = PCA(n_components = 2)
-    X_pca = pca.fit_transform(X_test)
+    features_idx = train.columns[1:]
+    train_data = train[features_idx].values
+    train_labels = train.iloc[:, 0].values
+    test_data = test[features_idx].values
+    test_labels = test.iloc[:, 0].values
 
-    # Convert PCA result into a DataFrame
-    pca_df = pd.DataFrame(X_pca, columns=['PC1', 'PC2'])
-    pca_df['Label'] = y_test  # Add labels for coloring
+    # normalization
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(train_data)
+    X_test_scaled = scaler.transform(test_data)
 
-    plt.figure(figsize=(8, 6))
-    for label in np.unique(y_test):
-        subset = pca_df[pca_df['Label'] == label]
-        plt.scatter(subset['PC1'], subset['PC2'], label=f'Class {label}', alpha=0.7)
+    # 2D PCA
+    pca_2d = PCA(n_components=2)
+    X_train_pca_2d = pca_2d.fit_transform(X_train_scaled)
+    X_test_pca_2d = pca_2d.transform(X_test_scaled)
 
-    plt.xlabel("Principal Component 1")
-    plt.ylabel("Principal Component 2")
-    plt.title("PCA Visualization of Test Data")
-    plt.legend()
-    plt.grid(True)
+    # 3D PCA
+    pca_3d = PCA(n_components=3)
+    X_train_pca_3d = pca_3d.fit_transform(X_train_scaled)
+    X_test_pca_3d = pca_3d.transform(X_test_scaled)
+
+    # === 2D ===
+    plt.figure(figsize=(10, 5))
+    
+    # train
+    plt.subplot(1, 2, 1)
+    plt.scatter(X_train_pca_2d[:, 0], X_train_pca_2d[:, 1], c=train_labels, cmap='viridis', alpha=0.6)
+    plt.xlabel("PCA Component 1")
+    plt.ylabel("PCA Component 2")
+    plt.title("PCA Visualization (2D) - Train Data")
+
+    # test
+    plt.subplot(1, 2, 2)
+    plt.scatter(X_test_pca_2d[:, 0], X_test_pca_2d[:, 1], c=test_labels, cmap='viridis', alpha=0.6)
+    plt.xlabel("PCA Component 1")
+    plt.ylabel("PCA Component 2")
+    plt.title("PCA Visualization (2D) - Test Data")
+    
+    plt.show()
+
+    # === 3D ===
+    fig = plt.figure(figsize=(10, 5))
+
+    # train
+    ax1 = fig.add_subplot(121, projection='3d')
+    ax1.scatter(X_train_pca_3d[:, 0], X_train_pca_3d[:, 1], X_train_pca_3d[:, 2], c=train_labels, cmap='viridis', alpha=0.6)
+    ax1.set_xlabel("PCA 1")
+    ax1.set_ylabel("PCA 2")
+    ax1.set_zlabel("PCA 3")
+    ax1.set_title("PCA Visualization (3D) - Train Data")
+
+    # test
+    ax2 = fig.add_subplot(122, projection='3d')
+    ax2.scatter(X_test_pca_3d[:, 0], X_test_pca_3d[:, 1], X_test_pca_3d[:, 2], c=test_labels, cmap='viridis', alpha=0.6)
+    ax2.set_xlabel("PCA 1")
+    ax2.set_ylabel("PCA 2")
+    ax2.set_zlabel("PCA 3")
+    ax2.set_title("PCA Visualization (3D) - Test Data")
+
     plt.show()
 
 '''''''''''''''''''''''''''''''''
@@ -146,8 +191,8 @@ plt.title(f'Confusion Matrix (classifier = ML, acc = {accuracy_ML})')
 
 plt.show()
 
-# PCA visualization of test data
-PCA_visualize(test_data)
+# Data visualization
+Visualize_PCA(train_data, test_data)
 
 
 

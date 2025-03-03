@@ -1,0 +1,43 @@
+The whole progress is in the following steps:
+    \begin{itemize}
+        \item \textbf{Split the dataset:}  
+        The dataset is divided into a training set and a testing set.
+
+        \item \textbf{Compute the prior distribution:}  
+        The prior probability for each class \( x \) is estimated from the training set as:
+        \begin{equation*}
+            P(x) = \frac{\text{number of samples with type } x}{\text{total number of samples in the training set}}, \quad x \in \{0,1,2\}.
+        \end{equation*}
+
+        \item \textbf{Estimate the likelihood using a Gaussian distribution:}  
+        Assuming that all features are independent and follow a Gaussian distribution, we estimate the mean and variance for each feature and class:
+        \begin{equation*}
+            \mu_{x}^{(j)} = \frac{1}{N_x} \sum_{i=1}^{N_x} X_i^{(j)},
+        \end{equation*}
+        \begin{equation*}
+            \sigma_{x}^{(j)2} = \frac{1}{N_x} \sum_{i=1}^{N_x} \left( X_i^{(j)} - \mu_{x}^{(j)} \right)^2,
+        \end{equation*}
+        where:
+        \begin{itemize}
+            \item \( X_i^{(j)} \) is the value of the \( j \)-th feature for the \( i \)-th sample in class \( x \).
+            \item \( N_x \) is the number of samples in class \( x \).
+            \item \( \mu_{x}^{(j)} \) and \( \sigma_{x}^{(j)2} \) are the estimated mean and variance of the \( j \)-th feature for class \( x \).
+        \end{itemize}
+
+        \item \textbf{Compute the posterior probability:}  
+        Using Bayes' theorem, the posterior probability for a sample belonging to class \( x \) is given by:
+        \begin{equation*}
+            P(x \mid X) \propto P(X \mid x) P(x),
+        \end{equation*}
+        where the likelihood term is calculated as:
+        \begin{equation*}
+            P(X \mid x) = \prod_{j=1}^{13} \frac{1}{\sqrt{2\pi\sigma_{x}^{(j)2}}} \exp\left( -\frac{(X^{(j)} - \mu_{x}^{(j)})^2}{2\sigma_{x}^{(j)2}} \right).
+        \end{equation*}
+
+        \item \textbf{Classification decision:}  
+        A given test sample is assigned to the class with the highest posterior probability:
+        \begin{equation*}
+            \hat{x} = \arg\max_{x \in \{0,1,2\}} P(x \mid X).
+        \end{equation*}
+
+    \end{itemize}
