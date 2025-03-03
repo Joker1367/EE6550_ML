@@ -55,7 +55,7 @@ def MAP_classifier(prior, likelihood, test_data):
 
     return prediction
 
-def ML_classifier(likelihood, test_data):
+def ML_classifier(likelihood, test_data): 
     features = test_data.columns[1:]
     prediction = []
 
