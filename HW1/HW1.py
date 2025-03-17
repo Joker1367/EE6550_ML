@@ -87,11 +87,6 @@ def evaluate(test_data, prediction):
     return accuracy, cm
 
 def Visualize_PCA(train, test):
-    """
-    使用 PCA 降維並可視化 train_data 和 test_data
-    - train_data, test_data: 特徵矩陣 (不包含標籤)
-    - train_labels, test_labels: 對應的標籤 (分類用顏色區分)
-    """
 
     features_idx = train.columns[1:]
     train_data = train[features_idx].values
@@ -154,6 +149,32 @@ def Visualize_PCA(train, test):
 
     plt.show()
 
+def evaluate_feature_contributions(prior, likelihood, test_data):
+    answer = test_data.iloc[:, 0]
+    features = test_data.columns[1:]  
+    feature_contributions = {}  
+
+    for removed_feature in features:
+        prediction = []
+        reduced_features = [f for f in features if f != removed_feature]  
+
+        for _, row in test_data.iterrows():
+            x_vec = row[reduced_features].values
+            class_prob = {}
+
+            for cls, pdfs in likelihood.items():
+                prior_prob = prior[cls]
+                reduced_pdfs = [pdf for i, pdf in enumerate(pdfs) if features[i] != removed_feature]
+                likelihood_prob = np.prod([pdf(x) for pdf, x in zip(reduced_pdfs, x_vec)])
+                posterior_prob = likelihood_prob * prior_prob
+                class_prob[cls] = posterior_prob
+
+            prediction.append(max(class_prob, key=class_prob.get))
+
+        feature_contributions[removed_feature] = np.mean(np.array(answer) == np.array(prediction))
+
+    return feature_contributions
+
 '''''''''''''''''''''''''''''''''
         Main Program
 '''''''''''''''''''''''''''''''''
@@ -194,5 +215,11 @@ plt.show()
 # Data visualization
 Visualize_PCA(train_data, test_data)
 
+# Feature contribution
+feature_contribution = evaluate_feature_contributions(prior, likelihood, test_data)
+sorted_contributions = sorted(feature_contribution.items(), key=lambda x: x[1])
+print("Feature Contributions (sorted from most important to least important):")
+for feature, contribution in sorted_contributions:
+    print(f"{feature}: {contribution:.4f}")
 
 
