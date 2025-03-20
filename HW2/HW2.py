@@ -12,7 +12,6 @@ random.seed(42)
     Data Preprocessing
 '''''''''''''''
 def load_images_as_vectors(source_dir, img_size=(32, 32)):
-    """讀取所有灰階圖片並轉換為向量"""
     data = []
     labels = []
     
@@ -24,8 +23,8 @@ def load_images_as_vectors(source_dir, img_size=(32, 32)):
         
         for img_name in images:
             img_path = os.path.join(cls_path, img_name)
-            img = Image.open(img_path).convert("L").resize(img_size)  # 轉換為灰階 (L mode)
-            img_vector = np.array(img).flatten()  # 展平成 1D 向量
+            img = Image.open(img_path).convert("L").resize(img_size) 
+            img_vector = np.array(img).flatten()  
             
             data.append(img_vector)
             labels.append(cls)
@@ -59,25 +58,28 @@ class NeuralNetwork:
         self.output_size = output_size
         
         self.weights = []
+        self.weights_tmp = []
         self.biases = []
+        self.activations = []
+        self.Z = []
 
         np.random.seed(42)
         
-        self.weights.append(np.random.randn(self.input_size, self.hidden_sizes[0]))
-        self.biases.append(np.zeros(self.hidden_sizes[0]))
+        self.weights.append(np.random.randn(self.input_size, self.hidden_sizes[0]) * 0.01)
+        self.biases.append(np.zeros((1, self.hidden_sizes[0])))
         
         for i in range(1, len(self.hidden_sizes)):
-            self.weights.append(np.random.randn(self.hidden_sizes[i-1], self.hidden_sizes[i]))
-            self.biases.append(np.zeros(self.hidden_sizes[i]))
+            self.weights.append(np.random.randn(self.hidden_sizes[i-1], self.hidden_sizes[i]) * 0.01)
+            self.biases.append(np.zeros((1, self.hidden_sizes[i])))
         
-        self.weights.append(np.random.randn(self.hidden_sizes[-1], self.output_size))
-        self.biases.append(np.zeros(self.output_size))
+        self.weights.append(np.random.randn(self.hidden_sizes[-1], self.output_size) * 0.01)
+        self.biases.append(np.zeros((1, self.output_size)))
+
 
     def relu(self, x):
         return np.maximum(0, x)
     
     def softmax(self, x):
-        x = np.clip(x, -500, 500)  # 將x限制在[-500, 500]範圍內
         e_x = np.exp(x - np.max(x, axis=1, keepdims=True))  
         return e_x / e_x.sum(axis=1, keepdims=True)
     
@@ -93,6 +95,8 @@ class NeuralNetwork:
                 activation = self.softmax(z)
             else:
                 activation = self.relu(z)
+            
+            self.Z.append(z)
             self.activations.append(activation)
         
         return self.activations[-1]
@@ -102,15 +106,19 @@ class NeuralNetwork:
         
         output = self.activations[-1]
         output_error = output - y
+
+        self.weights_tmp = self.weights
         
         for i in range(len(self.weights)-1, -1, -1):
             if i == len(self.weights) - 1:
                 delta = output_error
             else:
-                delta = delta.dot(self.weights[i+1].T) * self.relu_derivative(self.activations[i+1] > 0)  
+                delta = np.dot(delta, self.weights_tmp[i+1].T) * self.relu_derivative(self.Z[i])
+
+            print("delta = ", delta)
                 
-            self.weights[i] -= learning_rate * self.activations[i].T.dot(delta) / m
-            self.biases[i] -= learning_rate * np.sum(delta, axis=0) / m
+            self.weights[i] -= learning_rate * np.dot(self.activations[i].T, delta) / m
+            self.biases[i] -= learning_rate * np.sum(delta, axis=0, keepdims=True) / m
 
     def train(self, X_train, y_train, epochs=1000, learning_rate=0.001):
         for epoch in range(epochs):
@@ -120,8 +128,13 @@ class NeuralNetwork:
                 loss = self.cross_entropy_loss(y_train, output)
                 print(f"Epoch {epoch}: Loss = {loss}")
 
+        print("activations = ", self.activations)
+
+        print("weights = ", self.weights)
+        print("biases = ", self.biases)
+
     def cross_entropy_loss(self, y_true, y_pred):
-        return -np.sum(y_true * np.log(y_pred + 1e-8)) / y_true.shape[0]
+        return -np.sum(y_true * np.log(y_pred + 1e-9)) / y_true.shape[0]
 
 def eval(predict, answer):
     correct_count = sum(p == a for p, a in zip(predict, answer))
@@ -137,12 +150,14 @@ y_one_hot = one_hot_encode(y)
 
 X_train, y_train, X_val, y_val = split_data(X_pca, y_one_hot)
 
+print("X_train = ", X_train)
+
 input_size = 2  
 hidden_sizes = [10]  
 output_size = 3
 
 nn_2 = NeuralNetwork(input_size, hidden_sizes, output_size)
-nn_2.train(X_train, y_train, epochs=1000, learning_rate=0.0003)
+nn_2.train(X_train, y_train, epochs=1, learning_rate=0.007)
 
 y_pred = nn_2.forward(X_val)
 prediction = np.argmax(y_pred, axis = 1)
